@@ -20,22 +20,6 @@ if [[ "$(git rev-parse --abbrev-ref HEAD)" != "feature/add-plugin" ]]; then
   exit 0
 fi
 
-GITHUB_REPOSITORY_NAME=${GITHUB_REPOSITORY##*/}
-GITHUB_REPOSITORY_OWNER=${GITHUB_REPOSITORY%%/*}
-COMMIT_ID=$(git rev-parse HEAD)
-
-echo $(info_message "COMMIT_ID: $COMMIT_ID")
-echo $(info_message "GITHUB_REPOSITORY_NAME: $GITHUB_REPOSITORY_NAME")
-echo $(info_message "GITHUB_REPOSITORY_OWNER: $GITHUB_REPOSITORY_OWNER")
-
-if [[ -z "$GITHUB_REPOSITORY_NAME" ]] || [[ -z "$GITHUB_REPOSITORY_OWNER" ]] || [[ -z "$COMMIT_ID" ]]; then
-  echo $(error_message "One or more of the following variables are not set: GITHUB_REPOSITORY_NAME, GITHUB_REPOSITORY_OWNER, COMMIT_ID")
-  exit 1
-fi
-
-
-
-
 # VIP Go CI tools directory.
 VIP_GO_CI_TOOLS_DIR="$ACTION_WORKDIR/vip-go-ci-tools"
 
@@ -49,7 +33,6 @@ echo $( info_message "DOCKER_GITHUB_WORKSPACE: $DOCKER_GITHUB_WORKSPACE" )
 
 if [[ ! -d "$VIP_GO_CI_TOOLS_DIR" ]] || [[ ! -d "$DOCKER_GITHUB_WORKSPACE" ]]; then
   echo $( error_message "One or more of the following directories are not present: VIP_GO_CI_TOOLS_DIR, DOCKER_GITHUB_WORKSPACE" )
-
   exit 1
 fi
 
@@ -70,73 +53,6 @@ fi
 #######################################
 CMD=( "--lint=false" "--phpcs=true" )
 
-#######################################
-# Set the --skip-draft-prs
-# Default: false
-# Options: BOOLEAN
-#######################################
-if [[ "$SKIP_DRAFT_PRS" == "true" ]]; then
-  CMD+=( "--skip-draft-prs=true" )
-fi
-
-#######################################
-# Set the --local-git-repo
-# Options: STRING (Path to local git repo)
-#######################################
-CMD+=( "--local-git-repo=$DOCKER_GITHUB_WORKSPACE" )
-
-#######################################
-# Set the --name-to-use
-# Default: 'action-phpcs-code-review'
-# Options: STRING (Name to use for the bot)
-#######################################
-if [[ -n "$NAME_TO_USE" ]]; then
-  CMD+=( "--name-to-use=$NAME_TO_USE" )
-else
-  CMD+=( "--name-to-use=[action-phpcs-code-review](https://github.com/rtCamp/action-phpcs-code-review/)")
-fi
-
-################################################################################
-#                      Environmental & repo configuration                      #
-################################################################################
-
-#######################################
-# Set the --repo-options
-# Default: If .vipgoci_options file is present in the repo, then true.
-#######################################
-if [[ -f "$DOCKER_GITHUB_WORKSPACE/.vipgoci_options" ]]; then
-  CMD+=( "--repo-options=true" )
-fi
-
-################################################################################
-#                             GitHub configuration                             #
-################################################################################
-
-#######################################
-# Set the --repo-owner
-# Default: $GITHUB_REPOSITORY_OWNER
-#######################################
-CMD+=( "--repo-owner=$GITHUB_REPOSITORY_OWNER" )
-
-#######################################
-# Set the --repo-name
-# Default: $GITHUB_REPOSITORY_NAME
-#######################################
-CMD+=( "--repo-name=$GITHUB_REPOSITORY_NAME" )
-
-#######################################
-# Set the --commit
-# Default: $GITHUB_SHA
-#######################################
-CMD+=( "--commit=$COMMIT_ID" )
-
-#######################################
-# Set the --token
-# Default: $GH_BOT_TOKEN
-# Options: STRING (GitHub token)
-#######################################
-CMD+=( "--token=$GH_BOT_TOKEN" )
-
 ################################################################################
 #                            PHPCS configuration                               #
 ################################################################################
@@ -149,7 +65,6 @@ CMD+=( "--token=$GH_BOT_TOKEN" )
 if [[ -n "$PHPCS_PHP_VERSION" ]]; then
   if [[ -z "$( command -v php$PHPCS_PHP_VERSION )" ]]; then
     echo $( warning_message "php$PHPCS_PHP_VERSION is not available. Using default php runtime...." )
-
     phpcs_php_path=$( command -v php )
   else
     phpcs_php_path=$( command -v php$PHPCS_PHP_VERSION )
@@ -196,17 +111,17 @@ phpcsfilefound=1
 
 for phpcsfile in "${defaultFiles[@]}"; do
   if [[ -f "$DOCKER_GITHUB_WORKSPACE/$phpcsfile" ]]; then
-      phpcs_standard="$DOCKER_GITHUB_WORKSPACE/$phpcsfile"
-      phpcsfilefound=0
+    phpcs_standard="$DOCKER_GITHUB_WORKSPACE/$phpcsfile"
+    phpcsfilefound=0
   fi
 done
 
 if [[ $phpcsfilefound -ne 0 ]]; then
-    if [[ -n "$1" ]]; then
-      phpcs_standard="$1"
-    else
-      phpcs_standard="WordPress"
-    fi
+  if [[ -n "$1" ]]; then
+    phpcs_standard="$1"
+  else
+    phpcs_standard="WordPress"
+  fi
 fi
 
 if [[ -n "$PHPCS_STANDARD_FILE_NAME" ]] && [[ -f "$DOCKER_GITHUB_WORKSPACE/$PHPCS_STANDARD_FILE_NAME" ]]; then
@@ -259,41 +174,6 @@ if [[ -f "$DOCKER_GITHUB_WORKSPACE/.vipgoci_phpcs_skip_folders" ]]; then
 fi
 
 ################################################################################
-#                GitHub reviews & generic comments configuration               #
-################################################################################
-
-#######################################
-# Set the --report-no-issues-found
-# Default: false
-#######################################
-CMD+=( "--report-no-issues-found=false" )
-
-#######################################
-# Set the --informational-msg
-# Default: Powered by rtCamp's [GitHub Actions Library](https://github.com/rtCamp/github-actions-library/)
-# Options: STRING (Message to be included in the comment)
-#######################################
-if [[ -z "$INFORMATIONAL_MSG" ]]; then
-  informational_msg="Powered by rtCamp's [GitHub Actions Library](https://github.com/rtCamp/github-actions-library)"
-else
-  informational_msg="$INFORMATIONAL_MSG"
-fi
-
-CMD+=( "--informational-msg=$informational_msg" )
-
-#######################################
-# Set the --scan-details-msg-include
-# Default: false
-#######################################
-CMD+=( "--scan-details-msg-include=false" )
-
-#######################################
-# Set the --dismiss-stale-reviews
-# Default: true
-#######################################
-CMD+=( "--dismiss-stale-reviews=true" )
-
-################################################################################
 #                Start Code Review and set GH build status                     #
 ################################################################################
 
@@ -302,46 +182,4 @@ echo $( info_message "Command: $VIP_GO_CI_TOOLS_DIR/vip-go-ci/vip-go-ci.php ${CM
 
 PHPCS_CMD=( php "$VIP_GO_CI_TOOLS_DIR/vip-go-ci/vip-go-ci.php" "${CMD[@]}" )
 
-if [[ "$ENABLE_STATUS_CHECKS" == "true" ]]; then
-  php $VIP_GO_CI_TOOLS_DIR/vip-go-ci/github-commit-status.php --repo-owner="$GITHUB_REPOSITORY_OWNER" --repo-name="$GITHUB_REPOSITORY_NAME" --github-token="$GH_BOT_TOKEN" --github-commit="$COMMIT_ID" --build-context='PHPCS Code Review by rtCamp' --build-description="PR review in progress" --build-state="pending"
-
-  "${PHPCS_CMD[@]}"
-
-  export VIPGOCI_EXIT_CODE="$?"
-
-  export BUILD_STATE="failure"
-  export BUILD_DESCRIPTION="Unknown error"
-
-  case "$VIPGOCI_EXIT_CODE" in
-    "0")
-      export BUILD_STATE="success"
-      export BUILD_DESCRIPTION="No PHPCS errors found"
-      ;;
-    "230")
-      export BUILD_DESCRIPTION="Pull request not found for commit"
-      ;;
-    "248")
-      export BUILD_DESCRIPTION="Commit not latest in PR"
-      ;;
-    "249")
-      export BUILD_DESCRIPTION="Inspection timed out, PR may be too large"
-      ;;
-    "250")
-      export BUILD_DESCRIPTION="Found PHPCS errors"
-      ;;
-    "251")
-      export BUILD_DESCRIPTION="Action is not configured properly"
-      ;;
-    "252")
-      export BUILD_DESCRIPTION="GitHub communication error. Please retry"
-      ;;
-    "253")
-      export BUILD_DESCRIPTION="Wrong options passed to action"
-      ;;
-  esac
-
-
-  php $VIP_GO_CI_TOOLS_DIR/vip-go-ci/github-commit-status.php --repo-owner="$GITHUB_REPOSITORY_OWNER" --repo-name="$GITHUB_REPOSITORY_NAME" --github-token="$GH_BOT_TOKEN" --github-commit="$COMMIT_ID" --build-context='PHPCS Code Review by rtCamp' --build-description="$BUILD_DESCRIPTION" --build-state="$BUILD_STATE"
-else
-  "${PHPCS_CMD[@]}"
-fi
+"${PHPCS_CMD[@]}"
