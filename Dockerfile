@@ -5,7 +5,7 @@ LABEL "com.github.actions.icon"="check-circle"
 LABEL "com.github.actions.color"="green"
 LABEL "com.github.actions.name"="PHPCS Code Review"
 LABEL "com.github.actions.description"="Run automated code review using PHPCS on your pull requests."
-LABEL "org.opencontainers.image.source"="https://github.com/rtCamp/action-phpcs-code-review"
+LABEL "org.opencontainers.image.source"="https://github.com/pratik-londhe4/action-phpcs-code-review"
 
 ARG VAULT_VERSION=1.12.3
 ARG DEFAULT_PHP_VERSION=8.1
