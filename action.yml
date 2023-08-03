@@ -1,5 +1,5 @@
 name: 'PHPCS Code Review'
-description: 'This will run phpcs on PRs'
+description: 'Use this before making pr to check phpcs feedback'
 author: 'rtCamp'
 runs:
   using: 'docker'
@@ -7,3 +7,4 @@ runs:
 branding:
   icon: 'check-circle'
   color: 'green'
+

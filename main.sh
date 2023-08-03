@@ -14,48 +14,27 @@ info_message() {
   echo -en "\033[32mINFO\033[0m: $1"
 }
 
-if [[ "$GITHUB_EVENT_NAME" != "pull_request" ]]; then
-  echo $( warning_message "This action only runs on pull_request events." )
-  echo $( info_message "Refer https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request for more information." )
-  echo $( info_message "Exiting..." )
-
-  exit 0
-fi
-
-if [[ $(cat "$GITHUB_EVENT_PATH" | jq -r .pull_request.body) == *"[do-not-scan]"* ]]; then
-  echo $( info_message "[do-not-scan] found in PR description. Skipping PHPCS scan." )
-
+# Check if the current branch is feature/add-plugin
+if [[ "$(git rev-parse --abbrev-ref HEAD)" != "feature/add-plugin" ]]; then
+  echo $(warning_message "This script is supposed to be run on the feature/add-plugin branch.")
   exit 0
 fi
 
 GITHUB_REPOSITORY_NAME=${GITHUB_REPOSITORY##*/}
 GITHUB_REPOSITORY_OWNER=${GITHUB_REPOSITORY%%/*}
-COMMIT_ID=$(cat $GITHUB_EVENT_PATH | jq -r '.pull_request.head.sha')
+COMMIT_ID=$(git rev-parse HEAD)
 
-echo $( info_message "COMMIT_ID: $COMMIT_ID" )
-echo $( info_message "GITHUB_REPOSITORY_NAME: $GITHUB_REPOSITORY_NAME" )
-echo $( info_message "GITHUB_REPOSITORY_OWNER: $GITHUB_REPOSITORY_OWNER" )
+echo $(info_message "COMMIT_ID: $COMMIT_ID")
+echo $(info_message "GITHUB_REPOSITORY_NAME: $GITHUB_REPOSITORY_NAME")
+echo $(info_message "GITHUB_REPOSITORY_OWNER: $GITHUB_REPOSITORY_OWNER")
 
 if [[ -z "$GITHUB_REPOSITORY_NAME" ]] || [[ -z "$GITHUB_REPOSITORY_OWNER" ]] || [[ -z "$COMMIT_ID" ]]; then
-  echo $( error_message "One or more of the following variables are not set: GITHUB_REPOSITORY_NAME, GITHUB_REPOSITORY_OWNER, COMMIT_ID" )
-
+  echo $(error_message "One or more of the following variables are not set: GITHUB_REPOSITORY_NAME, GITHUB_REPOSITORY_OWNER, COMMIT_ID")
   exit 1
 fi
 
-if [[ -n "$VAULT_TOKEN" ]]; then
-  GH_BOT_TOKEN=$(vault read -field=token secret/rtBot-token)
 
-    echo "::warning ::Support for HashiCorp Vault will be discontinued in the future. Please use GitHub Action Secrets to store the secrets. Refer https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository to know more about GitHub Action Secrets."
-fi
 
-# Remove trailing and leading whitespaces. At times copying token can give leading space.
-GH_BOT_TOKEN=${GH_BOT_TOKEN//[[:blank:]]/}
-
-if [[ -z "$GH_BOT_TOKEN" ]]; then
-  echo $( error_message "GH_BOT_TOKEN is not set." )
-
-  exit 1
-fi
 
 # VIP Go CI tools directory.
 VIP_GO_CI_TOOLS_DIR="$ACTION_WORKDIR/vip-go-ci-tools"
